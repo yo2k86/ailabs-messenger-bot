@@ -1,9 +1,4 @@
-Siap brow, tokennya sudah saya masukkan langsung ke dalam kodenya.
-
-Silakan langsung *copy* semua kode di bawah ini, *paste* ke GitHub, lalu klik **Commit changes...**:
-
-```javascript
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // Kata sandi buatan kita sendiri untuk verifikasi Meta nanti
   const VERIFY_TOKEN = "AILABS_TOKEN_RAHASIA"; 
   
@@ -32,7 +27,7 @@ export default async function handler(req, res) {
         const changes = entry.changes[0];
         
         // Deteksi jika ada komentar baru yang masuk
-        if (changes.field === 'feed' && changes.value.item === 'comment' && changes.value.verb === 'add') {
+        if (changes && changes.field === 'feed' && changes.value && changes.value.item === 'comment' && changes.value.verb === 'add') {
           const commentText = changes.value.message.toLowerCase();
           const commentId = changes.value.comment_id;
 
@@ -51,7 +46,7 @@ export default async function handler(req, res) {
     }
     return res.status(404).send('Not Found');
   }
-}
+};
 
 // FUNGSI EKSEKUSI PENGIRIMAN PESAN VIA API META
 async function kirimDM(commentId, message, token) {
@@ -70,5 +65,3 @@ async function kirimDM(commentId, message, token) {
     console.error('Gagal mengirim pesan:', error);
   }
 }
-
-```
