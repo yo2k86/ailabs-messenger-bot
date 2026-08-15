@@ -1,60 +1,109 @@
 export default async function handler(req, res) {
-  // GANTI DI VERCEL ENV, JANGAN DI SINI
-  const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "AILABS_TOKEN_RAHASIA";
+  const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
   const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 
-  // Buat verifikasi awal dari Facebook
-  if (req.method === 'GET') {
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
-    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+  // 1. VERIFIKASI WEBHOOK
+  if (req.method === "GET") {
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
+    if (mode === "subscribe" && token === VERIFY_TOKEN) {
       return res.status(200).send(challenge);
     }
-    return res.status(403).send('Forbidden');
+    return res.status(403).send("Forbidden");
   }
 
-  // Ini yang jalan pas ada komen
-  if (req.method === 'POST') {
+  // 2. TERIMA WEBHOOK
+  if (req.method === "POST") {
+    const body = req.body;
+    console.log("WEBHOOK MASUK:", JSON.stringify(body, null, 2));
+
     try {
-      const body = req.body;
-      if (body.object === 'page') {
-        for (const entry of body.entry) {
-          for (const change of entry.changes || []) {
-            // Cek cuma kalo ini KOMEN BARU
-            if (change.field === 'feed' && change.value.item === 'comment' && change.value.verb === 'add') {
+      if (body?.object === "page") {
+        for (const entry of body?.entry || []) {
+          for (const change of entry?.changes || []) {
+            const value = change?.value;
+
+            // Hanya proses komen baru, bukan komen dari Page sendiri
+            if (change?.field === "feed" && value?.item === "comment" && value?.verb === "add") {
               
-              const komenAsli = change.value.message || "";
-              const komen = komenAsli.toLowerCase();
-              const commentId = change.value.comment_id;
+              // Jangan bales komen dari admin page sendiri
+              if (value?.from?.id === entry?.id) continue;
 
-              console.log(`Ada komen masuk: ${komenAsli}`);
+              const commentText = String(value?.message || "").toLowerCase();
+              const commentId = value?.comment_id;
 
-              // Kalo komennya ada kata MAU / PROMPT / LINK
-              if (komen.includes('mau') || komen.includes('prompt') || komen.includes('link')) {
-                console.log("TRIGGER! Kirim DM ke: " + commentId);
+              console.log("KOMEN:", commentText, "| ID:", commentId);
 
-                const url = `https://graph.facebook.com/v21.0/${commentId}/private_replies?access_token=${PAGE_ACCESS_TOKEN}`;
-                
-                const fbRes = await fetch(url, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    message: "Halo brow! Ini link akses prompt AIlabs nya: https://google.com - cek Messenger ya!"
-                  })
-                });
-                
-                const hasil = await fbRes.json();
-                console.log("Hasil kirim DM:", hasil);
+              // ========== KEYWORD BANYAK ==========
+              const keywords = [
+                "prompt",
+                "mau",
+                "bangpro",
+                "bang pro",
+                "bg pro",
+                "bg",
+                "link",
+                "bagi",
+                "spill",
+                "info"
+              ];
+
+              const isTriggered = keywords.some(k => commentText.includes(k));
+
+              if (isTriggered) {
+                console.log("🔥 KEYWORD KENA:", commentText);
+
+                const pesan = `Halo brow! 🔥
+
+Ini link akses alat dan prompt AIlabs miliknya:
+https://google.com
+
+Tinggal klik & pakai. Jangan lupa follow biar gak ketinggalan prompt baru!`;
+
+                await kirimDM(commentId, pesan, PAGE_ACCESS_TOKEN);
               }
             }
           }
         }
       }
-      return res.status(200).send('EVENT_RECEIVED');
-    } catch (e) {
-      console.error(e);
-      return res.status(200).send('EVENT_RECEIVED');
+      return res.status(200).send("EVENT_RECEIVED");
+    } catch (error) {
+      console.error("ERROR:", error);
+      return res.status(200).send("EVENT_RECEIVED");
     }
+  }
+
+  return res.status(405).send("Method Not Allowed");
+}
+
+async function kirimDM(commentId, message, token) {
+  if (!commentId || !token) return;
+
+  // Pakai v21.0 jangan v26.0 (v26 belum ada)
+  const url = `https://graph.facebook.com/v21.0/${commentId}/private_replies`;
+
+  console.log("KIRIM PRIVATE REPLY KE:", commentId);
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: message,
+        access_token: token,
+      }),
+    });
+
+    const result = await response.json();
+    console.log("FB RESULT:", JSON.stringify(result, null, 2));
+
+    if (response.ok) {
+      console.log("✅ BERHASIL");
+    } else {
+      console.error("❌ GAGAL:", result);
+    }
+  } catch (error) {
+    console.error("❌ ERROR FETCH:", error);
   }
 }
