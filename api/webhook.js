@@ -8,22 +8,17 @@ export default async function handler(req, res) {
     const token = req.query['hub.verify_token'];
     const challenge = req.query['hub.challenge'];
 
-    if (mode && token) {
-      if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-        console.log("WEBHOOK_VERIFIED Sukses!");
-        return res.status(200).send(challenge);
-      } else {
-        console.log("Token Verifikasi Salah!");
-        return res.status(403).send('Forbidden');
-      }
+    if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+      console.log("WEBHOOK_VERIFIED Berhasil!");
+      return res.status(200).send(challenge);
     }
-    return res.status(400).send('Bad Request');
+    return res.status(403).send('Forbidden');
   }
 
   // --- 2. MENANGKAP EVENT WEBHOOK (POST) ---
   if (req.method === 'POST') {
     const body = req.body;
-    console.log("EVENT MASUK MENTAH:", JSON.stringify(body, null, 2));
+    console.log("EVENT POST MASUK:", JSON.stringify(body, null, 2));
 
     try {
       if (body.object === 'page') {
@@ -34,11 +29,11 @@ export default async function handler(req, res) {
                 const commentText = (change.value.message || "").toLowerCase();
                 const commentId = change.value.comment_id;
 
-                console.log(`Komentar Diterima: "${commentText}" (ID: ${commentId})`);
+                console.log(`Komentar Terdeteksi: "${commentText}" (ID: ${commentId})`);
 
                 if (commentText.includes('prompt') || commentText.includes('link') || commentText.includes('mau')) {
                   const pesanBalasan = "Halo brow! Ini link akses alat dan prompt AIlabs miliknya: https://google.com";
-                  await kirimDM(commentId, pesanBalasan, PAGE_ACCESS_TOKEN);
+                  await kirimDM(commentId, pesanBalesaan, PAGE_ACCESS_TOKEN);
                 }
               }
             }
@@ -52,7 +47,7 @@ export default async function handler(req, res) {
     }
   }
 
-  return res.status(404).send('Not Found');
+  return res.status(405).send('Method Not Allowed');
 }
 
 async function kirimDM(commentId, message, token) {
@@ -67,7 +62,7 @@ async function kirimDM(commentId, message, token) {
       })
     });
     const data = await response.json();
-    console.log("Respon Kirim DM:", data);
+    console.log("Hasil Kirim DM:", data);
   } catch (error) {
     console.error('Gagal mengirim DM:', error);
   }
