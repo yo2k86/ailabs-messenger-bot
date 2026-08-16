@@ -36,7 +36,7 @@ export default async function handler(req, res) {
 
                 // ANTI-SPAM RANDOM PUBLIC
                 const variasiPublic = [
-                  `Haii @${fromName}! 👋 Saya Ailabs Bot 🤖 Silahkan di cek yaa ✨`,
+                  `Haii @${fromName}! 👋 Saya Ailabs Bot 🤖 Silahkan di cek DM yaa ✨`,
                   `Halo @${fromName}! Aku Ailabs Bot nih, silahkan di cek DM kamu yaa 🚀`,
                   `Siap @${fromName}! Saya Ailabs Bot, cek inbox yaa 😉`
                 ];
