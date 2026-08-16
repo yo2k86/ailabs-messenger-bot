@@ -1,6 +1,6 @@
 export default async function handler(req, res) {
   const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "AILABS_TOKEN_RAHASIA";
-  const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+  const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN; // PASTIIN INI TOKEN NEVER EXPIRE YANG BARU!
 
   if (req.method === 'GET') {
     const mode = req.query['hub.mode'];
@@ -34,7 +34,9 @@ export default async function handler(req, res) {
               if (keywords.some(k => komen.includes(k))) {
                 console.log("🔥 TRIGGER KENA:", komen);
 
-                // ANTI-SPAM RANDOM PUBLIC
+                // FIX: Pake v19.0, jangan v21.0!
+                const GRAPH_VER = "v19.0";
+
                 const variasiPublic = [
                   `Haii @${fromName}! 👋 Saya Ailabs Bot 🤖 Silahkan di cek DM yaa ✨`,
                   `Halo @${fromName}! Aku Ailabs Bot nih, silahkan di cek DM kamu yaa 🚀`,
@@ -42,28 +44,44 @@ export default async function handler(req, res) {
                 ];
                 const pesanPublic = variasiPublic[Math.floor(Math.random() * variasiPublic.length)];
 
-                // 1. BALAS DI KOLOM KOMENTAR (TANPA LINK - ANTI BANNED)
-                const urlPublic = `https://graph.facebook.com/v21.0/${commentId}/comments?access_token=${PAGE_ACCESS_TOKEN}`;
-                const fbRes1 = await fetch(urlPublic, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ message: pesanPublic })
-                });
-                console.log("PUBLIC RESULT:", await fbRes1.json());
-
-                // 2. BALAS DI DM PRIVATE (ADA LINK)
+                // 1. PUBLIC REPLY
                 try {
-                  const urlPrivate = `https://graph.facebook.com/v21.0/${commentId}/private_replies?access_token=${PAGE_ACCESS_TOKEN}`;
+                  const urlPublic = `https://graph.facebook.com/${GRAPH_VER}/${commentId}/comments?access_token=${PAGE_ACCESS_TOKEN}`;
+                  const fbRes1 = await fetch(urlPublic, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: pesanPublic })
+                  });
+                  const data1 = await fbRes1.json();
+                  console.log("PUBLIC RESULT:", data1);
+                } catch (e) {
+                  console.log("PUBLIC GAGAL:", e.message);
+                }
+
+                // KASIH JEDA 2 DETIK BIAR GAK KE-DETECT SPAM
+                await new Promise(r => setTimeout(r, 2000));
+
+                // 2. PRIVATE REPLY - FIX ERROR 33
+                try {
+                  const urlPrivate = `https://graph.facebook.com/${GRAPH_VER}/${commentId}/private_replies?access_token=${PAGE_ACCESS_TOKEN}`;
                   const fbRes2 = await fetch(urlPrivate, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                      message: `Halo @${fromName}! 👋\n\nSaya Ailabs Bot 🤖\nKamu komen "${komenAsli}" ya? Link PRO nya udah aku siapin:\n\n👉 https://meta.ai/prompt/xxxxx\n\nSilahkan di cek DM ini ya! ✨` 
+                      message: `Halo ${fromName}! 👋\n\nKamu komen "${komenAsli}" ya? Link nya udah aku siapin:\n\n👉 https://meta.ai/prompt/xxxxx\n\nCek DM ini ya! ✨` 
                     })
                   });
-                  console.log("PRIVATE RESULT:", await fbRes2.json());
+                  const data2 = await fbRes2.json();
+                  console.log("PRIVATE RESULT:", data2);
+                  
+                  if (data2.error) {
+                    console.log("PRIVATE ERROR DETAIL:", data2.error.message, "| CODE:", data2.error.code, "| SUBCODE:", data2.error.error_subcode);
+                    if (data2.error.code === 100 && data2.error.error_subcode === 33) {
+                      console.log("SOLUSI: App masih Development & pengkomen bukan Tester! Add jadi Tester atau ganti ke Live Mode!");
+                    }
+                  }
                 } catch (e) {
-                  console.log("PRIVATE GAGAL (butuh permission pages_messaging):", e);
+                  console.log("PRIVATE GAGAL:", e.message);
                 }
               }
             }
