@@ -39,12 +39,12 @@ export default async function handler(req, res) {
 
                 const variasiPublic = [
                   `Makasih @${fromName} sudah mampir! Mau langganan Ailabs? Checkout langsung di sini yaa 🚀
-
                   
                   🛒 https://bangpro.lynk.id/p/ailabs-influincer
                   
                   💬 WhatsApp: https://wa.me/6283874048199`,
                             `Terima kasih @${fromName}! Langganan Ailabs bisa dibeli lewat sini 😉
+                            
                             🛒 https://bangpro.lynk.id/p/ailabs-influincer
                             
                             💬 WhatsApp: https://wa.me/6283874048199`,
