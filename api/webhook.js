@@ -38,9 +38,15 @@ export default async function handler(req, res) {
                 const GRAPH_VER = "v19.0";
 
                 const variasiPublic = [
-                  `Haii @${fromName}! 👋 Saya Ailabs Bot 🤖 Silahkan di cek DM yaa ✨`,
-                  `Halo @${fromName}! Aku Ailabs Bot nih, silahkan di cek DM kamu yaa 🚀`,
-                  `Siap @${fromName}! Saya Ailabs Bot, cek inbox yaa 😉`
+                  `Makasih @${fromName} sudah mampir! Mau langganan Ailabs? Checkout langsung di sini yaa 🚀
+                  🛒 https://bangpro.lynk.id/p/ailabs-influincer
+                  💬 WhatsApp: https://wa.me/6283874048199`,
+                            `Terima kasih @${fromName}! Langganan Ailabs bisa dibeli lewat sini 😉
+                            🛒 https://bangpro.lynk.id/p/ailabs-influincer
+                            💬 WhatsApp: https://wa.me/6283874048199`,
+                            `Makasih banyak @${fromName}! Ini link langganan Ailabs-nya 🔥
+                            🛒 https://bangpro.lynk.id/p/ailabs-influincer
+                            💬 WhatsApp: https://wa.me/6283874048199`,
                 ];
                 const pesanPublic = variasiPublic[Math.floor(Math.random() * variasiPublic.length)];
 
