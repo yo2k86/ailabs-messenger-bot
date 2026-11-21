@@ -1,6 +1,7 @@
 export default async function handler(req, res) {
   const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "AILABS_TOKEN_RAHASIA";
-  const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
+  const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN; // PASTIIN INI TOKEN NEVER EXPIRE YANG BARU!
+
   if (req.method === 'GET') {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
@@ -10,16 +11,24 @@ export default async function handler(req, res) {
     }
     return res.status(403).send('Forbidden');
   }
+
   if (req.method === 'POST') {
     try {
       const body = req.body;
       console.log("WEBHOOK MASUK:", JSON.stringify(body, null, 2));
+
       if (body.object === 'page') {
         for (const entry of body.entry || []) {
+          // Incoming Messenger messages (user DMing the Page first).
+          // Sibling branch to the feed/comment branch below.
           for (const m of entry.messaging || []) {
+            // Skip delivery/read receipts and the Page's own echoes.
             if (!m.message || m.message.is_echo) continue;
             const senderId = m.sender?.id;
             if (!senderId) continue;
+
+            // Best-effort anti-spam guard (in-memory, per warm instance):
+            // reply at most once per sender per 60 seconds.
             const now = Date.now();
             const last = lastDmReply.get(senderId) || 0;
             if (now - last < 60000) {
@@ -27,10 +36,12 @@ export default async function handler(req, res) {
               continue;
             }
             lastDmReply.set(senderId, now);
+
             if (!PAGE_ACCESS_TOKEN) {
               console.log("DM GAGAL: PAGE_ACCESS_TOKEN tidak ada");
               continue;
             }
+
             const GRAPH_VER = "v19.0";
             try {
               const urlDm = `https://graph.facebook.com/${GRAPH_VER}/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
@@ -59,19 +70,44 @@ export default async function handler(req, res) {
               console.log("DM GAGAL:", e.message);
             }
           }
+
           for (const change of entry.changes || []) {
             if (change.field === 'feed' && change.value.item === 'comment' && change.value.verb === 'add') {
               if (change.value.from?.id === entry.id) continue;
+
               const komenAsli = change.value.message || "";
               const komen = komenAsli.toLowerCase();
               const commentId = change.value.comment_id;
               const fromName = change.value.from?.name || "Kak";
+
               console.log(`KOMEN MASUK: ${komenAsli} | ID: ${commentId}`);
+
               const keywords = ["mau"];
               if (keywords.some(k => komen.includes(k))) {
-                console.log("TRIGGER KENA:", komen);
+                console.log("🔥 TRIGGER KENA:", komen);
+
+                // FIX: Pake v19.0, jangan v21.0!
                 const GRAPH_VER = "v19.0";
-                const pesanPublic = `Makasih @${fromName}! Cek DM ya — klik Kirim Pesan ke Page ini, link-nya aku kirim di sana 💬`;
+
+                // Public reply: invite the commenter to DM the Page.
+                // 10 natural variants, picked at random so it doesn't
+                // look like spam. The sales pitch lives in the DM
+                // (user-initiated), not in the public comment.
+                const pesanPublicList = [
+                  `Makasih @${fromName}! DM Page ini ya, ketik "mau" di sana.`,
+                  `Siap @${fromName}! Kirim pesan ke Page ini dulu ya, tulis "mau".`,
+                  `Makasih @${fromName}! Lanjut di DM ya, ketik "mau" ke Page ini.`,
+                  `Oke @${fromName}! Klik Kirim Pesan ke Page ini, terus ketik "mau" ya.`,
+                  `Makasih @${fromName}! DM dulu ya, nanti link-nya dikirim di sana.`,
+                  `Siap @${fromName}! Chat Page ini dulu ya, ketik "mau" di DM.`,
+                  `Makasih @${fromName}! Cek DM ya, kirim "mau" ke Page ini dulu.`,
+                  `Oke @${fromName}! Pesan ke Page ini ya, tulis "mau" di DM.`,
+                  `Makasih @${fromName}! Langsung DM Page ini aja ya, ketik "mau".`,
+                  `Siap @${fromName}! DM Page ini dulu ya, biar langsung dibalas.`
+                ];
+                const pesanPublic = pesanPublicList[Math.floor(Math.random() * pesanPublicList.length)];
+
+                // 1. PUBLIC REPLY
                 try {
                   const urlPublic = `https://graph.facebook.com/${GRAPH_VER}/${commentId}/comments?access_token=${PAGE_ACCESS_TOKEN}`;
                   const fbRes1 = await fetch(urlPublic, {
@@ -96,4 +132,8 @@ export default async function handler(req, res) {
     }
   }
 }
+
+// Best-effort anti-spam throttle for DM replies, keyed by sender id.
+// In-memory only: it resets on cold start and is per serverless instance,
+// so it is a throttle, not a guarantee against duplicate replies.
 const lastDmReply = new Map();
