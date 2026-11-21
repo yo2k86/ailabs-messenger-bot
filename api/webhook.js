@@ -44,11 +44,9 @@ export default async function handler(req, res) {
                       type: "template",
                       payload: {
                         template_type: "button",
-                        text: "AI Video Creator Suite: 3-in-1 Gem System + AiLabs Influencer Workflow — sekali bayar Rp99.000 (dicoret Rp399.000). Gabung Saluran WhatsApp dulu buat lihat-lihat, atau langsung beli di Lynk.",
+                        text: "AI Video Creator Suite: 3-in-1 Gem System + AiLabs Influencer Workflow. Gabung Saluran WhatsApp Ailabs dulu buat lihat-lihat.",
                         buttons: [
-                          { type: "web_url", url: "https://whatsapp.com/channel/0029VbE8ufbKwqSKTKqvYh0w", title: "Saluran WhatsApp" },
-                          { type: "web_url", url: "https://bangpro.lynk.id/p/ailabs-influincer", title: "Beli Rp99.000" },
-                          { type: "web_url", url: "https://wa.me/6283874048199", title: "Chat Admin" }
+                          { type: "web_url", url: "https://bangpro.my.id/channel", title: "Gabung Channel" }
                         ]
                       }
                     }
