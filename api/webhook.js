@@ -1,7 +1,6 @@
 export default async function handler(req, res) {
   const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "AILABS_TOKEN_RAHASIA";
-  const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN; // PASTIIN INI TOKEN NEVER EXPIRE YANG BARU!
-
+  const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
   if (req.method === 'GET') {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
@@ -11,64 +10,70 @@ export default async function handler(req, res) {
     }
     return res.status(403).send('Forbidden');
   }
-
   if (req.method === 'POST') {
     try {
       const body = req.body;
       console.log("WEBHOOK MASUK:", JSON.stringify(body, null, 2));
-
       if (body.object === 'page') {
         for (const entry of body.entry || []) {
+          for (const m of entry.messaging || []) {
+            if (!m.message || m.message.is_echo) continue;
+            const senderId = m.sender?.id;
+            if (!senderId) continue;
+            const now = Date.now();
+            const last = lastDmReply.get(senderId) || 0;
+            if (now - last < 60000) {
+              console.log("DM SKIP (anti-spam, <60s):", senderId);
+              continue;
+            }
+            lastDmReply.set(senderId, now);
+            if (!PAGE_ACCESS_TOKEN) {
+              console.log("DM GAGAL: PAGE_ACCESS_TOKEN tidak ada");
+              continue;
+            }
+            const GRAPH_VER = "v19.0";
+            try {
+              const urlDm = `https://graph.facebook.com/${GRAPH_VER}/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+              const fbRes = await fetch(urlDm, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  recipient: { id: senderId },
+                  message: {
+                    attachment: {
+                      type: "template",
+                      payload: {
+                        template_type: "button",
+                        text: "AI Video Creator Suite: 3-in-1 Gem System + AiLabs Influencer Workflow — sekali bayar Rp99.000 (dicoret Rp399.000). Gabung Saluran WhatsApp dulu buat lihat-lihat, atau langsung beli di Lynk.",
+                        buttons: [
+                          { type: "web_url", url: "https://whatsapp.com/channel/0029VbE8ufbKwqSKTKqvYh0w", title: "Saluran WhatsApp" },
+                          { type: "web_url", url: "https://bangpro.lynk.id/p/ailabs-influincer", title: "Beli Rp99.000" },
+                          { type: "web_url", url: "https://wa.me/6283874048199", title: "Chat Admin" }
+                        ]
+                      }
+                    }
+                  }
+                })
+              });
+              const data = await fbRes.json();
+              console.log("DM RESULT:", data);
+            } catch (e) {
+              console.log("DM GAGAL:", e.message);
+            }
+          }
           for (const change of entry.changes || []) {
             if (change.field === 'feed' && change.value.item === 'comment' && change.value.verb === 'add') {
               if (change.value.from?.id === entry.id) continue;
-              
               const komenAsli = change.value.message || "";
               const komen = komenAsli.toLowerCase();
               const commentId = change.value.comment_id;
               const fromName = change.value.from?.name || "Kak";
-
               console.log(`KOMEN MASUK: ${komenAsli} | ID: ${commentId}`);
-
               const keywords = ["mau"];
               if (keywords.some(k => komen.includes(k))) {
-                console.log("🔥 TRIGGER KENA:", komen);
-
-                // FIX: Pake v19.0, jangan v21.0!
+                console.log("TRIGGER KENA:", komen);
                 const GRAPH_VER = "v19.0";
-
-                const variasiPublic = [
-                  `Welcome Ailabs
-                  
-                  Makasih @${fromName} sudah mampir! Mau langganan Ailabs? Checkout langsung di sini yaa 🚀
-                  
-                  🛒 https://bangpro.lynk.id/p/ailabs-influincer
-                  
-                  💬 WhatsApp: https://wa.me/6283874048199
-                  
-                  Ada pertanyaan? Langsung chat WhatsApp di atas yaa 💬`,
-                            `Welcome Ailabs
-                            
-                            Thank you @${fromName}! Want to become an Ailabs subscriber? Sign up here 😉
-                            
-                            🛒 https://bangpro.lynk.id/p/ailabs-influincer
-                            
-                            💬 WhatsApp: https://wa.me/6283874048199
-                            
-                            Any questions? Just chat us on WhatsApp above 💬`,
-                            `Welcome Ailabs
-                            
-                            Makasih banyak @${fromName}! Ini link langganan Ailabs-nya 🔥
-                            
-                            🛒 https://bangpro.lynk.id/p/ailabs-influincer
-                            
-                            💬 WhatsApp: https://wa.me/6283874048199
-                            
-                            Ada pertanyaan? Langsung chat WhatsApp di atas yaa 💬`,
-                ];
-                const pesanPublic = variasiPublic[Math.floor(Math.random() * variasiPublic.length)];
-
-                // 1. PUBLIC REPLY
+                const pesanPublic = `Makasih @${fromName}! Cek DM ya — klik Kirim Pesan ke Page ini, link-nya aku kirim di sana 💬`;
                 try {
                   const urlPublic = `https://graph.facebook.com/${GRAPH_VER}/${commentId}/comments?access_token=${PAGE_ACCESS_TOKEN}`;
                   const fbRes1 = await fetch(urlPublic, {
@@ -80,32 +85,6 @@ export default async function handler(req, res) {
                   console.log("PUBLIC RESULT:", data1);
                 } catch (e) {
                   console.log("PUBLIC GAGAL:", e.message);
-                }
-
-                // KASIH JEDA 2 DETIK BIAR GAK KE-DETECT SPAM
-                await new Promise(r => setTimeout(r, 2000));
-
-                // 2. PRIVATE REPLY - FIX ERROR 33
-                try {
-                  const urlPrivate = `https://graph.facebook.com/${GRAPH_VER}/${commentId}/private_replies?access_token=${PAGE_ACCESS_TOKEN}`;
-                  const fbRes2 = await fetch(urlPrivate, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                      message: `Halo ${fromName}! 👋\n\nKamu komen "${komenAsli}" ya? Link nya udah aku siapin:\n\n👉 https://meta.ai/prompt/xxxxx\n\nCek DM ini ya! ✨` 
-                    })
-                  });
-                  const data2 = await fbRes2.json();
-                  console.log("PRIVATE RESULT:", data2);
-                  
-                  if (data2.error) {
-                    console.log("PRIVATE ERROR DETAIL:", data2.error.message, "| CODE:", data2.error.code, "| SUBCODE:", data2.error.error_subcode);
-                    if (data2.error.code === 100 && data2.error.error_subcode === 33) {
-                      console.log("SOLUSI: App masih Development & pengkomen bukan Tester! Add jadi Tester atau ganti ke Live Mode!");
-                    }
-                  }
-                } catch (e) {
-                  console.log("PRIVATE GAGAL:", e.message);
                 }
               }
             }
@@ -119,3 +98,4 @@ export default async function handler(req, res) {
     }
   }
 }
+const lastDmReply = new Map();
