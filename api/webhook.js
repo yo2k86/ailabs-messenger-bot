@@ -94,16 +94,16 @@ export default async function handler(req, res) {
                 // look like spam. The sales pitch lives in the DM
                 // (user-initiated), not in the public comment.
                 const pesanPublicList = [
-                  `Makasih @${fromName}! DM Page ini ya, ketik "mau" di sana.`,
-                  `Siap @${fromName}! Kirim pesan ke Page ini dulu ya, tulis "mau".`,
-                  `Makasih @${fromName}! Lanjut di DM ya, ketik "mau" ke Page ini.`,
-                  `Oke @${fromName}! Klik Kirim Pesan ke Page ini, terus ketik "mau" ya.`,
-                  `Makasih @${fromName}! DM dulu ya, nanti link-nya dikirim di sana.`,
-                  `Siap @${fromName}! Chat Page ini dulu ya, ketik "mau" di DM.`,
-                  `Makasih @${fromName}! Cek DM ya, kirim "mau" ke Page ini dulu.`,
-                  `Oke @${fromName}! Pesan ke Page ini ya, tulis "mau" di DM.`,
-                  `Makasih @${fromName}! Langsung DM Page ini aja ya, ketik "mau".`,
-                  `Siap @${fromName}! DM Page ini dulu ya, biar langsung dibalas.`
+                  `Makasih @${fromName}! Klik ini buat DM ya, ketik "mau" di sana: https://m.me/AilabsOfficial`,
+                  `Siap @${fromName}! Klik ini terus tulis "mau" ya: https://m.me/AilabsOfficial`,
+                  `Makasih @${fromName}! Lanjut di DM ya, ketik "mau" di sini: https://m.me/AilabsOfficial`,
+                  `Oke @${fromName}! Klik link ini, terus ketik "mau" ya: https://m.me/AilabsOfficial`,
+                  `Makasih @${fromName}! DM dulu ya, klik ini: https://m.me/AilabsOfficial`,
+                  `Siap @${fromName}! Chat Page ini dulu ya, klik ini terus ketik "mau": https://m.me/AilabsOfficial`,
+                  `Makasih @${fromName}! Klik ini buat kirim "mau" ke Page ini: https://m.me/AilabsOfficial`,
+                  `Oke @${fromName}! Pesan ke Page ini ya, klik ini terus tulis "mau": https://m.me/AilabsOfficial`,
+                  `Makasih @${fromName}! Langsung DM Page ini aja ya, klik ini: https://m.me/AilabsOfficial`,
+                  `Siap @${fromName}! DM Page ini dulu ya, klik ini biar langsung dibalas: https://m.me/AilabsOfficial`
                 ];
                 const pesanPublic = pesanPublicList[Math.floor(Math.random() * pesanPublicList.length)];
 
